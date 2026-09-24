@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------
+# Secrets: NEVER commit these
+# ---------------------------------------------------------------------------
+# Environment files hold passwords and API keys (e.g. the Gmail App Password
+# in server/.env). Only the .env.example templates, which have no real
+# values, are committed.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+
+# ---------------------------------------------------------------------------
+# Private files
+# ---------------------------------------------------------------------------
+# Full-size original photos (resized copies live in client/public/photography)
+client/photo-originals/
+# Anything you want to keep in the project folder but never publish,
+# e.g. a resume that still has your phone number on it
+private/
+*-original.pdf
+*-private.*
+
+# ---------------------------------------------------------------------------
+# Generated / installed files (recreated by npm install and npm run build)
+# ---------------------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+coverage/
+.vite/
+*.tsbuildinfo
+.vercel/
+.netlify/
+
+# ---------------------------------------------------------------------------
+# Logs, OS and editor clutter
+# ---------------------------------------------------------------------------
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+.claude/
