@@ -26,7 +26,9 @@ export default function Contact() {
         body: JSON.stringify(data),
       })
       const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.error ?? 'Something went wrong. Please try again.')
+      // Only treat it as sent when the API explicitly confirms it, so a missing
+      // or misconfigured API can never show a false "sent" message.
+      if (!res.ok || body.ok !== true) throw new Error(body.error ?? 'Something went wrong. Please try again.')
       setStatus('success')
       form.reset()
     } catch (err) {
