@@ -55,7 +55,7 @@ export const profile = {
   // Put your resume in client/public/resume.pdf and it will be served at this path.
   resumeUrl: '/resume.pdf',
   socials: [
-    { label: 'GitHub', url: 'https://github.com/your-username' }, // TODO
+    { label: 'GitHub', url: 'https://github.com/bradfordjeffrey' },
     { label: 'LinkedIn', url: 'https://www.linkedin.com/in/jeffrey-lamptey-69a182390/' },
   ] satisfies Social[],
 }
@@ -142,7 +142,7 @@ export const focusAreas: FocusArea[] = [
         description:
           'This website: a multi-page React and TypeScript site with an Express API that validates, rate-limits and emails contact-form messages.',
         tech: ['React', 'TypeScript', 'Tailwind CSS', 'Node.js', 'Express'],
-        repoUrl: 'https://github.com/your-username/my-portfolio',
+        repoUrl: 'https://github.com/bradfordjeffrey/my-portfolio',
       },
       {
         title: 'PHP Web Application',
