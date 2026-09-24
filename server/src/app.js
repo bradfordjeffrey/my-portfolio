@@ -1,7 +1,9 @@
 import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
-import contactRouter from './routes/contact.js'
+// The contact handler lives in client/api/ so Vercel can deploy it as a
+// serverless function. Locally, Express runs that exact same code.
+import contactHandler from '../../client/api/contact.js'
 
 const app = express()
 
@@ -11,7 +13,7 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN ?? 'http://localhost:5173')
   .split(',')
   .map((origin) => origin.trim())
 
-// Hosts like Render/Railway sit behind a proxy; this lets rate limiting see the real client IP.
+// Lets the handler see the real client IP when running behind a proxy.
 app.set('trust proxy', 1)
 
 app.use(helmet())
@@ -22,7 +24,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' })
 })
 
-app.use('/api/contact', contactRouter)
+app.all('/api/contact', contactHandler)
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' })

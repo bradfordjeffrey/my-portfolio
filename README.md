@@ -46,7 +46,8 @@ This README explains how the project is set up, how to run it, how to customise 
 | Styling  | Tailwind CSS v4                | Utility classes, so no separate CSS files to maintain            |
 | Backend  | Node.js 22 + Express 5         | Small REST API that handles contact-form submissions            |
 | Email    | Nodemailer                     | Sends contact messages to your inbox over SMTP                  |
-| Security | Helmet, CORS, express-rate-limit | Safe HTTP headers, restricts who can call the API, blocks spam floods |
+| Hosting  | Vercel                         | Hosts the site and runs `client/api/` as serverless functions   |
+| Security | Helmet, CORS, rate limiting, honeypot | Safe HTTP headers, restricts who can call the API, blocks spam |
 | Dev tool | concurrently                   | Runs client and server with one command                         |
 
 > **Note:** Express *is* a Node.js framework. Node.js runs JavaScript on the server, and Express makes building an API on it easier.
@@ -64,9 +65,12 @@ My-Portfolio/
 │   ├── index.html          # HTML entry point: page title, meta description, fonts
 │   ├── vite.config.ts      # Vite config + dev proxy (/api → http://localhost:5000)
 │   ├── .env.example        # Template for client env vars
+│   ├── api/                # ⭐ Backend code deployed by Vercel as serverless functions
+│   │   ├── contact.js      # POST /api/contact: rate limit, spam check, validation
+│   │   └── _lib/mailer.js  # Sends the email with Nodemailer ("_" = not a URL)
 │   ├── vercel.json         # Sends every URL to index.html so page links work on Vercel
 │   ├── public/             # Static files served as-is (favicon, resume.pdf, images)
-│   │   ├── photography/    # Your photos (currently placeholder-*.svg)
+│   │   ├── photography/    # Your resized photos (made by `npm run photos`)
 │   │   └── _redirects      # Same as vercel.json, for Netlify
 │   └── src/
 │       ├── main.tsx        # Mounts the React app (wrapped in the router)
@@ -96,14 +100,11 @@ My-Portfolio/
 │           ├── Section.tsx    # Shared wrapper for consistent section styling
 │           └── accents.ts     # Colour theme per area (sky, emerald, violet, amber)
 │
-└── server/                 # Express API
+└── server/                 # Express server for LOCAL development
     ├── .env.example        # Template for server env vars (copy to .env)
     └── src/
         ├── index.js        # Starts the server on PORT (default 5000)
-        ├── app.js          # Express app: middleware, routes, error handling
-        ├── mailer.js       # Sends email with Nodemailer (or logs if not configured)
-        └── routes/
-            └── contact.js  # POST /api/contact: validation, rate limit, spam check
+        └── app.js          # Express app: security middleware, mounts client/api/contact.js
 ```
 
 ---
@@ -114,17 +115,19 @@ My-Portfolio/
  Browser                      Vite dev server (5173)           Express API (5000)
  ───────                      ──────────────────────           ──────────────────
  Loads the React site  ─────► serves client/src
- Submits contact form  ─────► /api/contact is proxied  ──────► routes/contact.js
+ Submits contact form  ─────► /api/contact is proxied  ──────► client/api/contact.js
                                                                ├─ rate limit (5 per 15 min)
                                                                ├─ honeypot spam check
                                                                ├─ validate name/email/message
-                                                               └─ mailer.js → your inbox
+                                                               └─ _lib/mailer.js → your inbox
  Shows success/error   ◄───────────────────────────────────── JSON response
 ```
 
 - **Pages:** React Router maps each URL to a page. The four area pages all use the same `FocusAreaPage` template, and the content for each comes from its entry in `focusAreas` in `portfolio.ts`. Adding a fifth area is just adding another entry to that list; the route, navbar link and home page card are created automatically.
-- **In development** the React app calls `/api/contact`. Vite's proxy (in `vite.config.ts`) forwards it to Express on port 5000, so you don't have to deal with CORS or hard-coded URLs.
-- **In production** the frontend and backend are usually hosted separately. The client uses the `VITE_API_URL` env var to know where the API lives, and the server only accepts requests from the domains listed in `CLIENT_ORIGIN`.
+- **One copy of the backend code.** The contact form's backend lives in `client/api/contact.js`. On the live site, Vercel runs it as a serverless function at `/api/contact`. Locally, the Express server mounts the exact same file, so what you test is what gets deployed.
+- **In development** the React app calls `/api/contact`. Vite's proxy (in `vite.config.ts`) forwards it to Express on port 5000.
+- **In production** the site and `/api/contact` are served from the same Vercel domain, so no API URL or CORS setup is needed.
+- **Safety:** if the email settings are missing on the live site, the form shows an error instead of pretending the message was sent. (Locally, messages are just printed in the terminal.)
 
 ### API endpoints
 
@@ -289,60 +292,50 @@ Other providers (Outlook, Zoho, or services like Resend, Brevo or SendGrid) work
 
 ## Environment variables
 
-### Server (`server/.env`)
+The same email settings are used in two places:
 
-| Variable           | Required | Default                  | Description                                    |
-| ------------------ | -------- | ------------------------ | ---------------------------------------------- |
-| `PORT`             | No       | `5000`                   | Port the API listens on                         |
-| `CLIENT_ORIGIN`    | In prod  | `http://localhost:5173`  | Comma-separated sites allowed to call the API   |
-| `SMTP_HOST`        | For email | –                       | SMTP server host                               |
-| `SMTP_PORT`        | No       | `587`                    | `465` = SSL, `587` = STARTTLS                   |
-| `SMTP_USER`        | For email | –                       | SMTP username (usually your email)             |
-| `SMTP_PASS`        | For email | –                       | SMTP password / app password                   |
-| `CONTACT_TO_EMAIL` | No       | `SMTP_USER`              | Where contact messages are delivered            |
+- **Locally:** in `server/.env` (never committed).
+- **On the live site:** in Vercel → your project → **Settings → Environment Variables**.
 
-### Client (`client/.env`)
-
-| Variable       | Required | Description                                                          |
-| -------------- | -------- | -------------------------------------------------------------------- |
-| `VITE_API_URL` | In prod  | URL of the deployed API, e.g. `https://my-portfolio-api.onrender.com`. Leave empty in dev. |
+| Variable           | Required  | Default                 | Description                                   |
+| ------------------ | --------- | ----------------------- | --------------------------------------------- |
+| `SMTP_HOST`        | For email | –                       | SMTP server host, e.g. `smtp.gmail.com`       |
+| `SMTP_PORT`        | No        | `587`                   | `465` = SSL, `587` = STARTTLS                  |
+| `SMTP_USER`        | For email | –                       | SMTP username (usually your email)            |
+| `SMTP_PASS`        | For email | –                       | SMTP password / Gmail App Password            |
+| `CONTACT_TO_EMAIL` | No        | `SMTP_USER`             | Where contact messages are delivered          |
+| `PORT`             | No        | `5000`                  | Local Express server only                     |
+| `CLIENT_ORIGIN`    | No        | `http://localhost:5173` | Local Express server only: allowed site(s)    |
 
 ---
 
 ## Deployment
 
-The simplest setup hosts the **frontend and backend separately**, both on free tiers.
+Everything (the website **and** the contact form backend) is hosted on **Vercel**, free tier.
 
-### Backend → Render (or Railway / Fly.io)
+### First deploy
 
-1. Push this repo to GitHub.
-2. On [Render](https://render.com): **New → Web Service** → pick the repo.
-3. Settings:
-   - **Root directory:** `server`
-   - **Build command:** `npm install`
-   - **Start command:** `npm start`
-4. Add the environment variables from `server/.env`, and set `CLIENT_ORIGIN` to your frontend URL (e.g. `https://yourname.vercel.app`).
-5. Deploy, then check `https://<your-api>.onrender.com/api/health`.
-
-> Render's free tier sleeps after inactivity, so the first contact submission after a while may take ~30 seconds.
-
-### Frontend → Vercel (or Netlify)
-
-1. On [Vercel](https://vercel.com): **Add New → Project** → pick the repo.
+1. On [Vercel](https://vercel.com): **Add New → Project** → import the GitHub repo.
 2. Settings:
-   - **Root directory:** `client`
-   - **Framework preset:** Vite (auto-detected)
-3. Add the env var `VITE_API_URL` = your Render API URL.
-4. Deploy. `client/vercel.json` makes sure refreshing or opening a page URL directly (e.g. `/it-operations`) works instead of showing a 404. On Netlify, `client/public/_redirects` does the same job.
-5. Optionally add a custom domain (e.g. `yourname.dev`), then add it to the server's `CLIENT_ORIGIN`.
+   - **Root Directory:** `client` ⚠️ important: the repo contains both `client` and `server`, and Vercel should only build `client`.
+   - **Framework preset:** Vite (auto-detected). Leave the build/output/install commands on their defaults.
+3. **Environment Variables:** add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `CONTACT_TO_EMAIL` (see the table above). Without them the site works, but the contact form shows an error.
+4. Deploy.
+
+`client/vercel.json` makes page URLs like `/it-operations` work when opened directly or refreshed, while leaving `/api/...` for the backend. (On Netlify, `client/public/_redirects` does the page part, but the `api/` functions are Vercel-specific.)
+
+### Updating the live site
+
+Every `git push` to `main` redeploys automatically.
+
+> **Changed an environment variable?** Vercel only applies it to *new* deployments. Go to **Deployments → ⋯ → Redeploy** on the latest one.
 
 ### Deployment checklist
 
 - [ ] Replaced every `TODO` placeholder in `portfolio.ts`
-- [ ] Added `client/public/resume.pdf`
-- [ ] `VITE_API_URL` set on the frontend host
-- [ ] `CLIENT_ORIGIN` on the backend matches the frontend URL exactly (no trailing slash)
-- [ ] SMTP variables set, and a test message received
+- [ ] Added `client/public/resume.pdf` (without your phone number)
+- [ ] Root Directory set to `client` in Vercel
+- [ ] SMTP environment variables set in Vercel, redeployed, and a test message received
 
 ---
 
