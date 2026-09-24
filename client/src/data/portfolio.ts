@@ -122,7 +122,7 @@ export const focusAreas: FocusArea[] = [
     ],
     skills: [
       { category: 'Frontend', items: ['HTML5', 'CSS3', 'JavaScript', 'TypeScript', 'React', 'Tailwind CSS', 'XML'] },
-      { category: 'Backend', items: ['Node.js', 'Express', 'PHP', 'Java', 'REST APIs'] },
+      { category: 'Backend', items: ['Node.js', 'Express', 'PHP', 'Laravel', 'Java', 'REST APIs'] },
       { category: 'Data & Tools', items: ['SQL Server', 'MySQL', 'Git', 'GitHub', 'VS Code'] },
     ],
     coursework: [
@@ -136,7 +136,6 @@ export const focusAreas: FocusArea[] = [
       'Data Structures and Design Patterns',
     ],
     projects: [
-      // TODO: replace with your real projects
       {
         title: 'Personal Portfolio',
         description:
@@ -145,10 +144,10 @@ export const focusAreas: FocusArea[] = [
         repoUrl: 'https://github.com/bradfordjeffrey/my-portfolio',
       },
       {
-        title: 'PHP Web Application',
+        title: 'FleetFlow: Transport Management System',
         description:
-          'Describe a PHP/MySQL application you built: what it does, its main features (e.g. login, CRUD, search) and your role.',
-        tech: ['PHP', 'MySQL', 'HTML', 'CSS'],
+          'A web application I conceived, designed and built for managing a transport company’s vehicles, drivers, customer rentals, maintenance, driver work-and-pay contracts, payments and expenses, with role-based accounts for admins, managers, mechanics and drivers. I designed the whole system, including its fully normalised (3NF) MySQL database of nine related tables. Built as a group course project.',
+        tech: ['PHP', 'Laravel', 'MySQL', 'Eloquent ORM'],
       },
     ],
   },
